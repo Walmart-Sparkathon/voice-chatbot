@@ -2,11 +2,28 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { Bot, Mic, MicOff } from "lucide-react";
+import axios from "axios";
 
 export default function WalmartAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
+
+  const sendToModel = async (transcript: string) => {
+    const res = await axios.post(
+      "http://localhost:8000/analyze",
+      {
+        message: transcript,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const entities = res.data.entities;
+    console.log("Extracted Entities:", entities);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
@@ -16,10 +33,10 @@ export default function WalmartAssistant() {
       recognition.interimResults = false;
       recognition.continuous = false;
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = async (event: any) => {
         const spokenText = event.results[0][0].transcript;
         setTranscript(spokenText);
-        setIsListening(false);
+        await sendToModel(spokenText);
       };
 
       recognition.onerror = () => setIsListening(false);
@@ -37,6 +54,7 @@ export default function WalmartAssistant() {
     }
     setIsListening((prev) => !prev);
   };
+
   const [shapes, setShapes] = useState<{ top: number; left: number }[]>([]);
 
   useEffect(() => {
